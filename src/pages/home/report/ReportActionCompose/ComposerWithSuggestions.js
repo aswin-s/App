@@ -606,6 +606,7 @@ function ComposerWithSuggestions({
     );
 }
 
+ComposerWithSuggestions.propTypes = propTypes;
 ComposerWithSuggestions.defaultProps = defaultProps;
 ComposerWithSuggestions.displayName = 'ComposerWithSuggestions';
 
