@@ -22,9 +22,9 @@ import usePrevious from '../../../../hooks/usePrevious';
 import * as EmojiUtils from '../../../../libs/EmojiUtils';
 import * as User from '../../../../libs/actions/User';
 import * as ReportUtils from '../../../../libs/ReportUtils';
+import * as SuggestionUtils from '../../../../libs/SuggestionUtils';
 import * as ReportActionsUtils from '../../../../libs/ReportActionsUtils';
 import canFocusInputOnScreenFocus from '../../../../libs/canFocusInputOnScreenFocus';
-import debouncedSaveReportComment from '../../../../libs/ComposerUtils/debouncedSaveReportComment';
 import SilentCommentUpdater from './SilentCommentUpdater';
 import Suggestions from './Suggestions';
 import getDraftComment from '../../../../libs/ComposerUtils/getDraftComment';
@@ -34,6 +34,7 @@ import withKeyboardState from '../../../../components/withKeyboardState';
 import {propTypes, defaultProps} from './composerWithSuggestionsProps';
 import focusWithDelay from '../../../../libs/focusWithDelay';
 import useDebounce from '../../../../hooks/useDebounce';
+import * as InputFocus from '../../../../libs/actions/InputFocus';
 
 const {RNTextInputReset} = NativeModules;
 
@@ -91,20 +92,28 @@ function ComposerWithSuggestions({
     isFullComposerAvailable,
     setIsFullComposerAvailable,
     setIsCommentEmpty,
-    submitForm,
+    handleSendMessage,
     shouldShowComposeInput,
     measureParentContainer,
+    listHeight,
     // Refs
     suggestionsRef,
     animatedRef,
     forwardedRef,
     isNextModalWillOpenRef,
+    editFocused,
 }) {
     const {preferredLocale} = useLocalize();
     const isFocused = useIsFocused();
     const navigation = useNavigation();
-
-    const [value, setValue] = useState(() => getDraftComment(reportID) || '');
+    const emojisPresentBefore = useRef([]);
+    const [value, setValue] = useState(() => {
+        const draft = getDraftComment(reportID) || '';
+        if (draft) {
+            emojisPresentBefore.current = EmojiUtils.extractEmojis(draft);
+        }
+        return draft;
+    });
     const commentRef = useRef(value);
     const lastTextRef = useRef(value);
 
@@ -129,6 +138,11 @@ function ComposerWithSuggestions({
 
     // A flag to indicate whether the onScroll callback is likely triggered by a layout change (caused by text change) or not
     const isScrollLikelyLayoutTriggered = useRef(false);
+    const suggestions = lodashGet(suggestionsRef, 'current.getSuggestions', () => [])();
+
+    const hasEnoughSpaceForLargeSuggestion = SuggestionUtils.hasEnoughSpaceForLargeSuggestionMenu(listHeight, composerHeight, suggestions.length);
+
+    const isAutoSuggestionPickerLarge = !isSmallScreenWidth || (isSmallScreenWidth && hasEnoughSpaceForLargeSuggestion);
 
     /**
      * Update frequently used emojis list. We debounce this method in the constructor so that UpdateFrequentlyUsedEmojis
@@ -155,14 +169,6 @@ function ComposerWithSuggestions({
         isScrollLikelyLayoutTriggered.current = true;
         debouncedLowerIsScrollLikelyLayoutTriggered();
     }, [debouncedLowerIsScrollLikelyLayoutTriggered]);
-
-    const onInsertedEmoji = useCallback(
-        (emojiObject) => {
-            insertedEmojisRef.current = [...insertedEmojisRef.current, emojiObject];
-            debouncedUpdateFrequentlyUsedEmojis(emojiObject);
-        },
-        [debouncedUpdateFrequentlyUsedEmojis],
-    );
 
     /**
      * Set the TextInput Ref
@@ -210,6 +216,14 @@ function ComposerWithSuggestions({
 
     const insertWhiteSpace = (text, index) => `${text.slice(0, index)} ${text.slice(index)}`;
 
+    const debouncedSaveReportComment = useMemo(
+        () =>
+            _.debounce((selectedReportID, newComment) => {
+                Report.saveReportComment(selectedReportID, newComment || '');
+            }, 1000),
+        [],
+    );
+
     /**
      * Update the value of the comment in Onyx
      *
@@ -228,10 +242,13 @@ function ComposerWithSuggestions({
             );
 
             if (!_.isEmpty(emojis)) {
-                insertedEmojisRef.current = [...insertedEmojisRef.current, ...emojis];
-                debouncedUpdateFrequentlyUsedEmojis();
+                const newEmojis = EmojiUtils.getAddedEmojis(emojis, emojisPresentBefore.current);
+                if (!_.isEmpty(newEmojis)) {
+                    insertedEmojisRef.current = [...insertedEmojisRef.current, ...newEmojis];
+                    debouncedUpdateFrequentlyUsedEmojis();
+                }
             }
-
+            emojisPresentBefore.current = emojis;
             setIsCommentEmpty(!!newComment.match(/^(\s)*$/));
             setValue(newComment);
             if (commentValue !== newComment) {
@@ -267,7 +284,7 @@ function ComposerWithSuggestions({
                 debouncedBroadcastUserIsTyping(reportID);
             }
         },
-        [raiseIsScrollLikelyLayoutTriggered, findNewlyAddedChars, preferredSkinTone, preferredLocale, setIsCommentEmpty, debouncedUpdateFrequentlyUsedEmojis, suggestionsRef, reportID],
+        [raiseIsScrollLikelyLayoutTriggered, findNewlyAddedChars, preferredSkinTone, preferredLocale, setIsCommentEmpty, debouncedUpdateFrequentlyUsedEmojis, suggestionsRef, reportID, debouncedSaveReportComment],
     );
 
     /**
@@ -308,7 +325,7 @@ function ComposerWithSuggestions({
         }
         setIsFullComposerAvailable(false);
         return trimmedComment;
-    }, [updateComment, setTextInputShouldClear, isComposerFullSize, setIsFullComposerAvailable, reportID]);
+    }, [updateComment, setTextInputShouldClear, isComposerFullSize, setIsFullComposerAvailable, reportID, debouncedSaveReportComment]);
 
     /**
      * Callback to add whatever text is chosen into the main input (used f.e as callback for the emoji picker)
@@ -335,7 +352,7 @@ function ComposerWithSuggestions({
             // Submit the form when Enter is pressed
             if (e.key === CONST.KEYBOARD_SHORTCUTS.ENTER.shortcutKey && !e.shiftKey) {
                 e.preventDefault();
-                submitForm();
+                handleSendMessage();
             }
 
             // Trigger the edit box for last sent message if ArrowUp is pressed and the comment is empty and Chronos is not in the participants
@@ -354,7 +371,7 @@ function ComposerWithSuggestions({
                 }
             }
         },
-        [isKeyboardShown, isSmallScreenWidth, parentReportActions, report, reportActions, reportID, submitForm, suggestionsRef, valueRef],
+        [isKeyboardShown, isSmallScreenWidth, parentReportActions, report, reportActions, reportID, handleSendMessage, suggestionsRef, valueRef],
     );
 
     const onSelectionChange = useCallback(
@@ -379,6 +396,7 @@ function ComposerWithSuggestions({
         if (!suggestionsRef.current) {
             return false;
         }
+        InputFocus.inputFocusChange(false);
         return suggestionsRef.current.setShouldBlockSuggestionCalc(false);
     }, [suggestionsRef]);
 
@@ -485,9 +503,12 @@ function ComposerWithSuggestions({
             return;
         }
 
+        if (editFocused) {
+            InputFocus.inputFocusChange(false);
+            return;
+        }
         focus();
-    }, [focus, prevIsFocused, prevIsModalVisible, isFocused, modal.isVisible, isNextModalWillOpenRef]);
-
+    }, [focus, prevIsFocused, editFocused, prevIsModalVisible, isFocused, modal.isVisible, isNextModalWillOpenRef]);
     useEffect(() => {
         if (value.length === 0) {
             return;
@@ -561,8 +582,8 @@ function ComposerWithSuggestions({
                 isComposerFullSize={isComposerFullSize}
                 updateComment={updateComment}
                 composerHeight={composerHeight}
-                onInsertedEmoji={onInsertedEmoji}
                 measureParentContainer={measureParentContainer}
+                isAutoSuggestionPickerLarge={isAutoSuggestionPickerLarge}
                 // Input
                 value={value}
                 setValue={setValue}
@@ -600,6 +621,9 @@ export default compose(
         preferredSkinTone: {
             key: ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE,
             selector: EmojiUtils.getPreferredSkinToneIndex,
+        },
+        editFocused: {
+            key: ONYXKEYS.INPUT_FOCUSED,
         },
         parentReportActions: {
             key: ({report}) => `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${report.parentReportID}`,
