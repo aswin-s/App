@@ -1,5 +1,5 @@
 import lodashClamp from 'lodash/clamp';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Dimensions, View } from 'react-native';
 import useStyleUtils from '@hooks/useStyleUtils';
@@ -73,7 +73,7 @@ function calculateThumbnailImageSize(width: number, height: number, windowHeight
 
 function ThumbnailImage({ previewSourceURL, style, isAuthTokenRequired, imageWidth = 200, imageHeight = 200, shouldDynamicallyResize = true }: ThumbnailImageProps) {
     const styles = useThemeStyles();
-    const [containerWidth, setContainerWidth] = useState(100);
+    const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const StyleUtils = useStyleUtils();
     const { windowHeight } = useWindowDimensions();
     const initialDimensions = calculateThumbnailImageSize(imageWidth, imageHeight, windowHeight);
@@ -94,16 +94,26 @@ function ThumbnailImage({ previewSourceURL, style, isAuthTokenRequired, imageWid
         [windowHeight],
     );
 
-    const aspectRatio = currentImageWidth && currentImageHeight ? currentImageWidth / currentImageHeight : 1;
-    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : [styles.w100, { height: containerWidth / aspectRatio }];
+    const aspectRatio = currentImageWidth && currentImageHeight ? currentImageWidth / currentImageHeight : undefined;
+    const containerAspectRatio = containerSize.width / containerSize.height;
+    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : [styles.w100, styles.alignItemsStart, aspectRatio ? {
+        width: aspectRatio > containerAspectRatio ? containerSize.height * aspectRatio : containerSize.width,
+        height: aspectRatio > containerAspectRatio ? containerSize.height : containerSize.width / aspectRatio
+    } : styles.h100];
+
+    useEffect(() => {
+        setCurrentImageHeight(undefined)
+        setCurrentImageWidth(undefined)
+    }, [previewSourceURL])
 
     return (
         <View
             style={[style, styles.overflowHidden]}
-            onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+            onLayout={(e) => setContainerSize(e.nativeEvent.layout)}
         >
             <View style={[...sizeStyles, styles.alignItemsCenter, styles.justifyContentCenter]}>
                 <ImageWithSizeCalculation
+                    style={{ opacity: !shouldDynamicallyResize && !aspectRatio ? 0 : 1 }}
                     url={previewSourceURL}
                     onMeasure={updateImageSize}
                     isAuthTokenRequired={isAuthTokenRequired}
