@@ -42,6 +42,7 @@ import Switch from './Switch';
 import tagPropTypes from './tagPropTypes';
 import taxPropTypes from './taxPropTypes';
 import Text from './Text';
+import ThumbnailImage from './ThumbnailImage';
 import transactionPropTypes from './transactionPropTypes';
 import withCurrentUserPersonalDetails, {withCurrentUserPersonalDetailsDefaultProps, withCurrentUserPersonalDetailsPropTypes} from './withCurrentUserPersonalDetails';
 
@@ -604,16 +605,7 @@ function MoneyRequestConfirmationList(props) {
                     <ConfirmedRoute transaction={props.transaction} />
                 </View>
             )}
-            {(receiptImage || receiptThumbnail) && (
-                <Image
-                    style={styles.moneyRequestImage}
-                    source={{uri: receiptThumbnail || receiptImage}}
-                    // AuthToken is required when retrieving the image from the server
-                    // but we don't need it to load the blob:// or file:// image when starting a money request / split bill
-                    // So if we have a thumbnail, it means we're retrieving the image from the server
-                    isAuthTokenRequired={!_.isEmpty(receiptThumbnail)}
-                />
-            )}
+            {(receiptImage || receiptThumbnail) && null}
             {props.shouldShowSmartScanFields && (
                 <MenuItemWithTopDescription
                     shouldShowRightIcon={!props.isReadOnly && !props.isDistanceRequest}

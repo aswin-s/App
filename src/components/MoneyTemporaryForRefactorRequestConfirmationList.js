@@ -41,6 +41,7 @@ import Switch from './Switch';
 import tagPropTypes from './tagPropTypes';
 import taxPropTypes from './taxPropTypes';
 import Text from './Text';
+import ThumbnailImage from './ThumbnailImage';
 import transactionPropTypes from './transactionPropTypes';
 import withCurrentUserPersonalDetails, {withCurrentUserPersonalDetailsDefaultProps, withCurrentUserPersonalDetailsPropTypes} from './withCurrentUserPersonalDetails';
 
@@ -639,13 +640,20 @@ function MoneyTemporaryForRefactorRequestConfirmationList({
                 </View>
             )}
             {(receiptImage || receiptThumbnail) && (
-                <Image
+                // <Image
+                //     style={styles.moneyRequestImage}
+                //     source={{uri: receiptThumbnail || receiptImage}}
+                //     // AuthToken is required when retrieving the image from the server
+                //     // but we don't need it to load the blob:// or file:// image when starting a money request / split bill
+                //     // So if we have a thumbnail, it means we're retrieving the image from the server
+                //     isAuthTokenRequired={!_.isEmpty(receiptThumbnail)}
+                // />
+
+                <ThumbnailImage
+                    previewSourceURL={receiptThumbnail || receiptImage}
                     style={styles.moneyRequestImage}
-                    source={{uri: receiptThumbnail || receiptImage}}
-                    // AuthToken is required when retrieving the image from the server
-                    // but we don't need it to load the blob:// or file:// image when starting a money request / split bill
-                    // So if we have a thumbnail, it means we're retrieving the image from the server
-                    isAuthTokenRequired={!_.isEmpty(receiptThumbnail)}
+                    isAuthTokenRequired={false}
+                    shouldDynamicallyResize={false}
                 />
             )}
             {shouldShowSmartScanFields && (

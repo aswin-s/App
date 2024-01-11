@@ -1,7 +1,7 @@
 import lodashClamp from 'lodash/clamp';
-import React, {useCallback, useState} from 'react';
-import type {StyleProp, ViewStyle} from 'react-native';
-import {Dimensions, View} from 'react-native';
+import React, { useCallback, useState } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Dimensions, View } from 'react-native';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
@@ -68,25 +68,25 @@ function calculateThumbnailImageSize(width: number, height: number, windowHeight
     } else {
         thumbnailScreenHeight = Math.round(thumbnailScreenWidth * aspectRatio);
     }
-    return {thumbnailWidth: Math.max(40, thumbnailScreenWidth), thumbnailHeight: Math.max(40, thumbnailScreenHeight)};
+    return { thumbnailWidth: Math.max(40, thumbnailScreenWidth), thumbnailHeight: Math.max(40, thumbnailScreenHeight) };
 }
 
-function ThumbnailImage({previewSourceURL, style, isAuthTokenRequired, imageWidth = 200, imageHeight = 200, shouldDynamicallyResize = true}: ThumbnailImageProps) {
+function ThumbnailImage({ previewSourceURL, style, isAuthTokenRequired, imageWidth = 200, imageHeight = 200, shouldDynamicallyResize = true }: ThumbnailImageProps) {
     const styles = useThemeStyles();
+    const [containerWidth, setContainerWidth] = useState(100);
     const StyleUtils = useStyleUtils();
-    const {windowHeight} = useWindowDimensions();
+    const { windowHeight } = useWindowDimensions();
     const initialDimensions = calculateThumbnailImageSize(imageWidth, imageHeight, windowHeight);
     const [currentImageWidth, setCurrentImageWidth] = useState(initialDimensions.thumbnailWidth);
     const [currentImageHeight, setCurrentImageHeight] = useState(initialDimensions.thumbnailHeight);
-
     /**
      * Update the state with the computed thumbnail sizes.
      * @param Params - width and height of the original image.
      */
 
     const updateImageSize = useCallback(
-        ({width, height}: UpdateImageSizeParams) => {
-            const {thumbnailWidth, thumbnailHeight} = calculateThumbnailImageSize(width, height, windowHeight);
+        ({ width, height }: UpdateImageSizeParams) => {
+            const { thumbnailWidth, thumbnailHeight } = calculateThumbnailImageSize(width, height, windowHeight);
 
             setCurrentImageWidth(thumbnailWidth);
             setCurrentImageHeight(thumbnailHeight);
@@ -94,10 +94,14 @@ function ThumbnailImage({previewSourceURL, style, isAuthTokenRequired, imageWidt
         [windowHeight],
     );
 
-    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : [styles.w100, styles.h100];
+    const aspectRatio = currentImageWidth && currentImageHeight ? currentImageWidth / currentImageHeight : 1;
+    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : [styles.w100, { height: containerWidth / aspectRatio }];
 
     return (
-        <View style={[style, styles.overflowHidden]}>
+        <View
+            style={[style, styles.overflowHidden]}
+            onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+        >
             <View style={[...sizeStyles, styles.alignItemsCenter, styles.justifyContentCenter]}>
                 <ImageWithSizeCalculation
                     url={previewSourceURL}
