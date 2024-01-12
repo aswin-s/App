@@ -79,27 +79,41 @@ function ThumbnailImage({ previewSourceURL, style, isAuthTokenRequired, imageWid
     const initialDimensions = calculateThumbnailImageSize(imageWidth, imageHeight, windowHeight);
     const [currentImageWidth, setCurrentImageWidth] = useState(initialDimensions.thumbnailWidth);
     const [currentImageHeight, setCurrentImageHeight] = useState(initialDimensions.thumbnailHeight);
+    const aspectRatio = currentImageWidth && currentImageHeight ? currentImageWidth / currentImageHeight : undefined;
+    const containerAspectRatio = containerSize.width / containerSize.height;
     /**
      * Update the state with the computed thumbnail sizes.
      * @param Params - width and height of the original image.
      */
 
+
     const updateImageSize = useCallback(
         ({ width, height }: UpdateImageSizeParams) => {
             const { thumbnailWidth, thumbnailHeight } = calculateThumbnailImageSize(width, height, windowHeight);
-
             setCurrentImageWidth(thumbnailWidth);
             setCurrentImageHeight(thumbnailHeight);
         },
         [windowHeight],
     );
 
-    const aspectRatio = currentImageWidth && currentImageHeight ? currentImageWidth / currentImageHeight : undefined;
-    const containerAspectRatio = containerSize.width / containerSize.height;
-    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : [styles.w100, styles.alignItemsStart, aspectRatio ? {
-        width: aspectRatio > containerAspectRatio ? containerSize.height * aspectRatio : containerSize.width,
-        height: aspectRatio > containerAspectRatio ? containerSize.height : containerSize.width / aspectRatio
-    } : styles.h100];
+    const getImageSize = useCallback(() => {
+        if (!aspectRatio) {
+            return [styles.w100, styles.h100]
+        }
+        if (aspectRatio > containerAspectRatio) {
+            return [{
+                height: containerSize.height,
+                width: containerSize.height * aspectRatio
+            }]
+        }
+        return [{
+            width: containerSize.width,
+            height: containerSize.width / aspectRatio
+        }]
+    }, [aspectRatio, containerAspectRatio, containerSize.height, containerSize.width, styles.h100, styles.w100])
+
+
+    const sizeStyles = shouldDynamicallyResize ? [StyleUtils.getWidthAndHeightStyle(currentImageWidth ?? 0, currentImageHeight)] : getImageSize();
 
     useEffect(() => {
         setCurrentImageHeight(undefined)
