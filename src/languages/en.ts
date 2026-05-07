@@ -2921,6 +2921,8 @@ const translations = {
         requestNewCodeAfterErrorOccurred: 'Request a new code',
         timeRemainingAnnouncement: ({timeRemaining}: {timeRemaining: number}) => `Time remaining: ${timeRemaining} ${timeRemaining === 1 ? 'second' : 'seconds'}`,
         timeExpiredAnnouncement: 'The time has expired',
+        scamWarningTitle: 'Avoid scams.',
+        scamWarningDescription: 'Do not share your code with anyone. Our team will never call, text, or email you for this code.',
         error: {
             pleaseFillMagicCode: 'Please enter your magic code',
             incorrectMagicCode: 'Incorrect or invalid magic code. Please try again or request a new code.',

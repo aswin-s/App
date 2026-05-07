@@ -2860,6 +2860,8 @@ ${amount} per ${merchant} - ${date}`,
         requestNewCodeAfterErrorOccurred: 'Richiedi un nuovo codice',
         timeRemainingAnnouncement: ({timeRemaining}) => `Tempo rimanente: ${timeRemaining} ${timeRemaining === 1 ? 'secondo' : 'secondi'}`,
         timeExpiredAnnouncement: 'Il tempo è scaduto',
+        scamWarningTitle: 'Evita le truffe.',
+        scamWarningDescription: 'Non condividere il tuo codice con nessuno. Il nostro team non ti chiamerà mai né ti invierà SMS o email per chiederti questo codice.',
         error: {
             pleaseFillMagicCode: 'Inserisci il tuo codice magico',
             incorrectMagicCode: 'Codice magico errato o non valido. Riprova o richiedi un nuovo codice.',

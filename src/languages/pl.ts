@@ -2851,6 +2851,8 @@ ${amount} dla ${merchant} - ${date}`,
         requestNewCodeAfterErrorOccurred: 'Poproś o nowy kod',
         timeRemainingAnnouncement: ({timeRemaining}) => `Pozostały czas: ${timeRemaining} ${timeRemaining === 1 ? 'sekunda' : 'sekund'}`,
         timeExpiredAnnouncement: 'Czas minął',
+        scamWarningTitle: 'Unikaj oszustw.',
+        scamWarningDescription: 'Nie udostępniaj nikomu swojego kodu. Nasz zespół nigdy nie zadzwoni, nie wyśle SMS-a ani e-maila z prośbą o ten kod.',
         error: {
             pleaseFillMagicCode: 'Wprowadź swój magiczny kod',
             incorrectMagicCode: 'Nieprawidłowy lub niepoprawny kod magiczny. Spróbuj ponownie lub poproś o nowy kod.',

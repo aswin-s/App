@@ -2783,6 +2783,8 @@ ${amount}，商户：${merchant} - 日期：${date}`,
         requestNewCodeAfterErrorOccurred: '请求新验证码',
         timeRemainingAnnouncement: ({timeRemaining}) => `剩余时间：${timeRemaining}秒`,
         timeExpiredAnnouncement: '时间已到期',
+        scamWarningTitle: '谨防诈骗。',
+        scamWarningDescription: '请勿与任何人分享你的验证码。我们的团队绝不会通过电话、短信或电子邮件向你索要此验证码。',
         error: {
             pleaseFillMagicCode: '请输入你的魔法验证码',
             incorrectMagicCode: '魔术验证码不正确或无效。请重试或请求新的验证码。',

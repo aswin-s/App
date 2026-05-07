@@ -2870,6 +2870,8 @@ ${amount} pour ${merchant} - ${date}`,
         requestNewCodeAfterErrorOccurred: 'Demander un nouveau code',
         timeRemainingAnnouncement: ({timeRemaining}) => `Temps restant : ${timeRemaining} ${timeRemaining === 1 ? 'seconde' : 'secondes'}`,
         timeExpiredAnnouncement: 'Le temps est écoulé',
+        scamWarningTitle: 'Évitez les arnaques.',
+        scamWarningDescription: 'Ne partagez votre code avec personne. Notre équipe ne vous appellera jamais et ne vous enverra jamais de SMS ni d’e-mail pour vous demander ce code.',
         error: {
             pleaseFillMagicCode: 'Veuillez saisir votre code magique',
             incorrectMagicCode: 'Code magique incorrect ou non valide. Veuillez réessayer ou demander un nouveau code.',

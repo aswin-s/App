@@ -2857,6 +2857,8 @@ ${amount} voor ${merchant} - ${date}`,
         requestNewCodeAfterErrorOccurred: 'Een nieuwe code aanvragen',
         timeRemainingAnnouncement: ({timeRemaining}) => `Resterende tijd: ${timeRemaining} ${timeRemaining === 1 ? 'seconde' : 'seconden'}`,
         timeExpiredAnnouncement: 'De tijd is verstreken',
+        scamWarningTitle: 'Voorkom oplichting.',
+        scamWarningDescription: 'Deel je code met niemand. Ons team zal je nooit bellen, sms’en of e-mailen om deze code te vragen.',
         error: {
             pleaseFillMagicCode: 'Voer je magische code in',
             incorrectMagicCode: 'Onjuiste of ongeldige magische code. Probeer het opnieuw of vraag een nieuwe code aan.',

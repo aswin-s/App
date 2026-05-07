@@ -2851,6 +2851,8 @@ ${amount} para ${merchant} - ${date}`,
         requestNewCodeAfterErrorOccurred: 'Solicitar um novo código',
         timeRemainingAnnouncement: ({timeRemaining}) => `Tempo restante: ${timeRemaining} ${timeRemaining === 1 ? 'segundo' : 'segundos'}`,
         timeExpiredAnnouncement: 'O tempo expirou',
+        scamWarningTitle: 'Evite golpes.',
+        scamWarningDescription: 'Não compartilhe seu código com ninguém. Nossa equipe nunca ligará, enviará mensagem de texto ou e-mail para pedir esse código.',
         error: {
             pleaseFillMagicCode: 'Insira seu código mágico',
             incorrectMagicCode: 'Código mágico incorreto ou inválido. Tente novamente ou solicite um novo código.',

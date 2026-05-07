@@ -4,6 +4,7 @@ import {View} from 'react-native';
 import Button from '@components/Button';
 import SafariFormWrapper from '@components/Form/SafariFormWrapper';
 import FormHelpMessage from '@components/FormHelpMessage';
+import Icon from '@components/Icon';
 import type {MagicCodeInputHandle} from '@components/MagicCodeInput';
 import MagicCodeInput from '@components/MagicCodeInput';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
@@ -13,11 +14,13 @@ import ValidateCodeCountdown from '@components/ValidateCodeCountdown';
 import type {ValidateCodeCountdownHandle} from '@components/ValidateCodeCountdown/types';
 import type {WithToggleVisibilityViewProps} from '@components/withToggleVisibilityView';
 import withToggleVisibilityView from '@components/withToggleVisibilityView';
+import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useNetwork from '@hooks/useNetwork';
 import useOnyx from '@hooks/useOnyx';
 import usePrevious from '@hooks/usePrevious';
 import useStyleUtils from '@hooks/useStyleUtils';
+import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import AccountUtils from '@libs/AccountUtils';
 import canFocusInputOnScreenFocus from '@libs/canFocusInputOnScreenFocus';
@@ -53,7 +56,9 @@ function BaseValidateCodeForm({autoComplete, isUsingRecoveryCode, setIsUsingReco
     const [session] = useOnyx(ONYXKEYS.SESSION);
     const [preferredLocale] = useOnyx(ONYXKEYS.NVP_PREFERRED_LOCALE);
     const styles = useThemeStyles();
+    const theme = useTheme();
     const {translate} = useLocalize();
+    const icons = useMemoizedLazyExpensifyIcons(['Exclamation']);
     const isFocused = useIsFocused();
     const {isOffline} = useNetwork();
     const [formError, setFormError] = useState<FormError>({});
@@ -402,6 +407,18 @@ function BaseValidateCodeForm({autoComplete, isUsingRecoveryCode, setIsUsingReco
                                 </Text>
                             </PressableWithFeedback>
                         )}
+                    </View>
+                    <View style={[styles.flexRow, styles.alignItemsStart, styles.mt4]}>
+                        <Icon
+                            src={icons.Exclamation}
+                            fill={theme.icon}
+                            small
+                            additionalStyles={[styles.mr2, styles.mt1]}
+                        />
+                        <Text style={[styles.flex1, styles.textLabelSupporting]}>
+                            <Text style={[styles.textLabelSupporting, styles.textBold]}>{translate('validateCodeForm.scamWarningTitle')}</Text>
+                            {` ${translate('validateCodeForm.scamWarningDescription')}`}
+                        </Text>
                     </View>
                 </View>
             )}

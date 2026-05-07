@@ -2833,6 +2833,8 @@ ${date} の ${merchant} への ${amount}`,
         requestNewCodeAfterErrorOccurred: '新しいコードをリクエスト',
         timeRemainingAnnouncement: ({timeRemaining}) => `残り時間: ${timeRemaining}秒`,
         timeExpiredAnnouncement: '時間切れです',
+        scamWarningTitle: '詐欺にご注意ください。',
+        scamWarningDescription: 'コードを誰とも共有しないでください。当社チームがこのコードを尋ねるために電話、SMS、メールで連絡することはありません。',
         error: {
             pleaseFillMagicCode: 'マジックコードを入力してください',
             incorrectMagicCode: '魔法コードが間違っているか無効です。もう一度お試しいただくか、新しいコードをリクエストしてください。',
