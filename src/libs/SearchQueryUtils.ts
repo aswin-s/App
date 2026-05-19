@@ -73,6 +73,8 @@ const VALID_HAS_TYPES = new Set(Object.values(CONST.SEARCH.HAS_VALUES));
 const VALID_IS_TYPES = new Set(Object.values(CONST.SEARCH.IS_VALUES));
 const VALID_WITHDRAWAL_TYPES = new Set(Object.values(CONST.SEARCH.WITHDRAWAL_TYPE));
 const VALID_WITHDRAWAL_STATUSES = new Set<string>(Object.values(CONST.SEARCH.SETTLEMENT_STATUS));
+const VALID_GROUP_BY_VALUES: ReadonlySet<string> = new Set(Object.values(CONST.SEARCH.GROUP_BY));
+const VALID_VIEW_VALUES: ReadonlySet<string> = new Set(Object.values(CONST.SEARCH.VIEW));
 
 // Create reverse lookup maps for O(1) performance
 const createKeyToUserFriendlyMap = () => {
@@ -592,6 +594,40 @@ function getBuildSearchQueryJSONCacheKey(query: SearchQueryString, rawQuery?: Se
     return rawQuery ? `${query}${BUILD_SEARCH_QUERY_JSON_CACHE_KEY_SEPARATOR}${rawQuery}` : query;
 }
 
+function getGroupByAndViewNormalization(result: SearchQueryJSON, rawFilterList: RawQueryFilter[] | undefined) {
+    const shouldRemoveGroupBy = !!result.groupBy && !VALID_GROUP_BY_VALUES.has(result.groupBy);
+    const shouldRemoveView = shouldRemoveGroupBy || (!!result.view && !VALID_VIEW_VALUES.has(result.view));
+    const isGroupByExplicitlySet = rawFilterList?.some((filter) => filter.key === CONST.SEARCH.SYNTAX_ROOT_KEYS.GROUP_BY) ?? false;
+    const isSortByExplicitlySet = rawFilterList?.some((filter) => filter.key === CONST.SEARCH.SYNTAX_ROOT_KEYS.SORT_BY) ?? false;
+    const isSortOrderExplicitlySet = rawFilterList?.some((filter) => filter.key === CONST.SEARCH.SYNTAX_ROOT_KEYS.SORT_ORDER) ?? false;
+    const shouldRemoveParserDefaultGroupBy = shouldRemoveView && !isGroupByExplicitlySet;
+
+    return {
+        shouldRemoveGroupBy: shouldRemoveGroupBy || shouldRemoveParserDefaultGroupBy,
+        shouldRemoveView,
+        shouldResetSortBy: shouldRemoveParserDefaultGroupBy && !isSortByExplicitlySet,
+        shouldResetSortOrder: shouldRemoveParserDefaultGroupBy && !isSortOrderExplicitlySet,
+    };
+}
+
+function removeInvalidRawGroupByAndViewFilters(rawFilterList: RawQueryFilter[] | undefined, shouldRemoveGroupBy: boolean, shouldRemoveView: boolean) {
+    if (!rawFilterList) {
+        return rawFilterList;
+    }
+
+    return rawFilterList.filter((filter) => {
+        const values = [filter.value].flat();
+        const hasInvalidGroupByValue = values.some((value) => typeof value === 'string' && !VALID_GROUP_BY_VALUES.has(value));
+        const hasInvalidViewValue = values.some((value) => typeof value === 'string' && !VALID_VIEW_VALUES.has(value));
+
+        if (filter.key === CONST.SEARCH.SYNTAX_ROOT_KEYS.GROUP_BY && (shouldRemoveGroupBy || hasInvalidGroupByValue)) {
+            return false;
+        }
+
+        return !(filter.key === CONST.SEARCH.SYNTAX_ROOT_KEYS.VIEW && (shouldRemoveView || hasInvalidViewValue));
+    });
+}
+
 function getCachedSearchQueryJSON(query: SearchQueryString, rawQuery?: SearchQueryString): Readonly<SearchQueryJSON> | undefined {
     const cacheKey = getBuildSearchQueryJSONCacheKey(query, rawQuery);
     if (buildSearchQueryJSONCache.has(cacheKey)) {
@@ -600,8 +636,22 @@ function getCachedSearchQueryJSON(query: SearchQueryString, rawQuery?: SearchQue
 
     try {
         const result = parseSearchQuery(query) as SearchQueryJSON;
+        const parsedRawFilterList = rawQuery ? getRawFilterListFromQuery(rawQuery) : result.rawFilterList;
+        const {shouldRemoveGroupBy, shouldRemoveView, shouldResetSortBy, shouldResetSortOrder} = getGroupByAndViewNormalization(result, parsedRawFilterList);
+        if (shouldRemoveGroupBy) {
+            result.groupBy = undefined;
+        }
+        if (shouldRemoveView) {
+            result.view = CONST.SEARCH.VIEW.TABLE;
+        }
+        if (shouldResetSortBy) {
+            result.sortBy = getDefaultSearchQueryJSON().sortBy;
+        }
+        if (shouldResetSortOrder) {
+            result.sortOrder = getDefaultSearchQueryJSON().sortOrder;
+        }
         const flatFilters = getFilters(result);
-        const rawFilterList = rawQuery ? getRawFilterListFromQuery(rawQuery) : result.rawFilterList;
+        const rawFilterList = removeInvalidRawGroupByAndViewFilters(parsedRawFilterList, shouldRemoveGroupBy, shouldRemoveView);
 
         // Add the full input and hash to the results
         result.inputQuery = query;
@@ -1657,7 +1707,7 @@ function buildUserReadableQueryString({
 }: BuildUserReadableQueryStringParams) {
     const {type, status, groupBy, view, columns, policyID, rawFilterList, flatFilters: filters = [], limit} = queryJSON;
 
-    if (rawFilterList && rawFilterList.length > 0) {
+    if (rawFilterList) {
         const segments: string[] = [];
 
         for (const rawFilter of rawFilterList) {
@@ -1712,9 +1762,7 @@ function buildUserReadableQueryString({
             }
         }
 
-        if (segments.length > 0) {
-            return segments.join(' ');
-        }
+        return segments.join(' ');
     }
 
     let title = status

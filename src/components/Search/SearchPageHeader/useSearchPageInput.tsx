@@ -63,6 +63,7 @@ function useSearchPageInput({queryJSON, onSearch, onSubmit}: UseSearchPageInputP
 
     const textInputRef = useRef<AnimatedTextInputRef>(null);
     const hasMountedRef = useRef(false);
+    const didUserClearInputRef = useRef(false);
 
     const {inputQuery: originalInputQuery} = queryJSON;
     const taxRates = getAllTaxRates(policies);
@@ -118,7 +119,9 @@ function useSearchPageInput({queryJSON, onSearch, onSubmit}: UseSearchPageInputP
     }
 
     function submitSearch(queryString: SearchQueryString, shouldSkipAmountConversion = false) {
-        const queryWithSubstitutions = getQueryWithSubstitutions(queryString, autocompleteSubstitutions, currentUserAccountID);
+        const queryToSubmit =
+            !shouldShowQuery && !shouldSkipAmountConversion && !didUserClearInputRef.current && originalInputQuery ? `${originalInputQuery} ${queryString}`.trim() : queryString;
+        const queryWithSubstitutions = getQueryWithSubstitutions(queryToSubmit, autocompleteSubstitutions, currentUserAccountID);
         const updatedQuery = getQueryWithUpdatedValues(queryWithSubstitutions, shouldSkipAmountConversion);
 
         if (!updatedQuery) {
@@ -133,6 +136,7 @@ function useSearchPageInput({queryJSON, onSearch, onSubmit}: UseSearchPageInputP
             }),
         );
         onSubmit();
+        didUserClearInputRef.current = false;
         if (updatedQuery !== originalInputQuery) {
             setTextInputValue('');
             setAutocompleteQueryValue('');
@@ -150,6 +154,9 @@ function useSearchPageInput({queryJSON, onSearch, onSubmit}: UseSearchPageInputP
 
     function onSearchQueryChange(userQuery: string) {
         const singleLineUserQuery = StringUtils.lineBreaksToSpaces(userQuery, true);
+        if (!singleLineUserQuery.trim()) {
+            didUserClearInputRef.current = true;
+        }
         const updatedUserQuery = getAutocompleteQueryWithComma(textInputValue, singleLineUserQuery);
         setTextInputValue(updatedUserQuery);
         setAutocompleteQueryValue(updatedUserQuery);

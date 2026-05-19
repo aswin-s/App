@@ -139,12 +139,12 @@ describe('SearchQueryUtils', () => {
             expect(result).toEqual(`${defaultQuery} from:9876,87654 to:78901 amount:15000 hello test`);
         });
 
-        test('returns query with updated groupBy', () => {
+        test('drops invalid groupBy and preserves other filters', () => {
             const userQuery = 'from:johndoe@example.com groupBy:reports';
 
             const result = getQueryWithUpdatedValues(userQuery);
 
-            expect(result).toEqual(`${defaultQuery} groupBy:reports from:12345`);
+            expect(result).toEqual(`${defaultQuery} from:12345`);
         });
 
         test('returns query with updated view', () => {
@@ -170,6 +170,14 @@ describe('SearchQueryUtils', () => {
             const result = getQueryWithUpdatedValues(userQuery);
 
             expect(result).toEqual('type:expense sortBy:groupCategory sortOrder:asc view:pie groupBy:category merchant:Amazon');
+        });
+
+        test('drops invalid view without keeping parser default groupBy', () => {
+            const userQuery = 'type:expense view:invalid merchant:Amazon';
+
+            const result = getQueryWithUpdatedValues(userQuery);
+
+            expect(result).toEqual(`${defaultQuery} merchant:Amazon`);
         });
 
         test('deduplicates conflicting type filters keeping the last occurrence', () => {
@@ -833,9 +841,102 @@ describe('SearchQueryUtils', () => {
             expect(result).toContain('limit:50');
             expect(result).toContain('group-by:category');
         });
+
+        test('omits invalid groupBy and view from raw query display while preserving from filter', () => {
+            const rawQuery = 'from:12345 groupBy:reports view:invalid';
+            const canonicalQueryString = getQueryWithUpdatedValues(rawQuery);
+
+            if (!canonicalQueryString) {
+                throw new Error('Failed to standardize query string');
+            }
+
+            const queryJSON = buildSearchQueryJSON(canonicalQueryString, rawQuery);
+
+            if (!queryJSON) {
+                throw new Error('Failed to parse query string');
+            }
+
+            const result = buildUserReadableQueryString({
+                queryJSON,
+                PersonalDetails: undefined,
+                reports: emptyReports,
+                taxRates: emptyTaxRates,
+                cardList: emptyCardList,
+                cardFeeds: emptyCardFeeds,
+                policies: emptyPolicies,
+                currentUserAccountID,
+                autoCompleteWithSpace: false,
+                translate: translateLocal,
+                reportAttributes: undefined,
+            });
+
+            expect(result).toBe('from:12345');
+            expect(queryJSON.rawFilterList).not.toEqual(expect.arrayContaining([expect.objectContaining({key: CONST.SEARCH.SYNTAX_ROOT_KEYS.GROUP_BY})]));
+            expect(queryJSON.rawFilterList).not.toEqual(expect.arrayContaining([expect.objectContaining({key: CONST.SEARCH.SYNTAX_ROOT_KEYS.VIEW})]));
+        });
+
+        test('does not fall back to default type when raw query only contains invalid display filters', () => {
+            const rawQuery = 'groupBy:reports';
+            const canonicalQueryString = getQueryWithUpdatedValues(rawQuery);
+
+            if (!canonicalQueryString) {
+                throw new Error('Failed to standardize query string');
+            }
+
+            const queryJSON = buildSearchQueryJSON(canonicalQueryString, rawQuery);
+
+            if (!queryJSON) {
+                throw new Error('Failed to parse query string');
+            }
+
+            const result = buildUserReadableQueryString({
+                queryJSON,
+                PersonalDetails: undefined,
+                reports: emptyReports,
+                taxRates: emptyTaxRates,
+                cardList: emptyCardList,
+                cardFeeds: emptyCardFeeds,
+                policies: emptyPolicies,
+                currentUserAccountID,
+                autoCompleteWithSpace: false,
+                translate: translateLocal,
+                reportAttributes: undefined,
+            });
+
+            expect(result).toBe('');
+        });
     });
 
     describe('buildFilterFormValuesFromQuery', () => {
+        test('drops invalid groupBy and preserves from filter in form values', () => {
+            const queryJSON = buildSearchQueryJSON('type:expense from:12345 groupBy:reports view:bar');
+
+            if (!queryJSON) {
+                throw new Error('Failed to parse query string');
+            }
+
+            const result = buildFilterFormValuesFromQuery(
+                queryJSON,
+                {},
+                {},
+                {},
+                {
+                    '12345': {
+                        accountID: 12345,
+                        login: 'testuser@example.com',
+                        displayName: 'Test User',
+                    },
+                },
+                {},
+                {},
+                {},
+            );
+
+            expect(result.groupBy).toBeUndefined();
+            expect(result.view).toBeUndefined();
+            expect(result.from).toEqual(['12345']);
+        });
+
         test('category filter includes empty values', () => {
             const policyID = generatePolicyID();
             const queryString = 'sortBy:date sortOrder:desc type:expense category:none,Uncategorized,Maintenance';
