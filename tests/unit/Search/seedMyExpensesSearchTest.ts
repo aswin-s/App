@@ -97,7 +97,21 @@ describe('isSubmitterAndApprover', () => {
         expect(isSubmitterAndApprover({submitOnly: policy}, USER_EMAIL)).toBe(false);
     });
 
-    it('returns true for an admin who approves on a group policy (any member is a submitter, not just role=user)', () => {
+    // Regression test for https://github.com/Expensify/App/issues/97213: an approver is necessarily a member of the workspace
+    // they approve on, so membership alone must not count as submitting.
+    it('returns false for an approve-only user who is a member but submits to nobody', () => {
+        const policy = makePaidPolicy({
+            id: 'approveOnly',
+            approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
+            employeeList: {
+                [USER_EMAIL]: {email: USER_EMAIL, role: CONST.POLICY.ROLE.USER},
+                [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: USER_EMAIL},
+            },
+        });
+        expect(isSubmitterAndApprover({approveOnly: policy}, USER_EMAIL)).toBe(false);
+    });
+
+    it('returns false for an admin who approves on a group policy but does not submit their own expenses', () => {
         const policy = makePaidPolicy({
             id: 'adminApprover',
             approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
@@ -106,18 +120,48 @@ describe('isSubmitterAndApprover', () => {
                 [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: USER_EMAIL},
             },
         });
-        expect(isSubmitterAndApprover({adminApprover: policy}, USER_EMAIL)).toBe(true);
+        expect(isSubmitterAndApprover({adminApprover: policy}, USER_EMAIL)).toBe(false);
     });
 
-    it('returns true for an approver on a free (Submit-type) group policy, not only paid group policies', () => {
-        const policy = makeFreePolicy({
+    it('returns true for an admin who both submits their own expenses and approves others', () => {
+        const policy = makePaidPolicy({
+            id: 'submittingAdmin',
+            approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
+            employeeList: {
+                [USER_EMAIL]: {email: USER_EMAIL, role: CONST.POLICY.ROLE.ADMIN, submitsTo: APPROVER_EMAIL},
+                [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: USER_EMAIL},
+            },
+        });
+        expect(isSubmitterAndApprover({submittingAdmin: policy}, USER_EMAIL)).toBe(true);
+    });
+
+    it('returns false when the user submits to themselves (self-approving, so not routing expenses onward)', () => {
+        const policy = makePaidPolicy({
+            id: 'selfSubmit',
+            approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
+            employeeList: {
+                [USER_EMAIL]: {email: USER_EMAIL, role: CONST.POLICY.ROLE.ADMIN, submitsTo: USER_EMAIL},
+                [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: USER_EMAIL},
+            },
+        });
+        expect(isSubmitterAndApprover({selfSubmit: policy}, USER_EMAIL)).toBe(false);
+    });
+
+    it('returns true for a submitter on a free (Submit-type) group policy who approves elsewhere, not only paid group policies', () => {
+        const freeSubmitPolicy = makeFreePolicy({
+            id: 'freeSubmit',
+            employeeList: {
+                [USER_EMAIL]: {email: USER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: APPROVER_EMAIL},
+            },
+        });
+        const approvePolicy = makePaidPolicy({
             id: 'freeApprover',
             approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
             employeeList: {
                 [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: USER_EMAIL},
             },
         });
-        expect(isSubmitterAndApprover({freeApprover: policy}, USER_EMAIL)).toBe(true);
+        expect(isSubmitterAndApprover({freeSubmitPolicy, approvePolicy}, USER_EMAIL)).toBe(true);
     });
 
     it('treats an over-limit forwards-to target as an approver', () => {
@@ -125,6 +169,7 @@ describe('isSubmitterAndApprover', () => {
             id: 'overLimitApprover',
             approvalMode: CONST.POLICY.APPROVAL_MODE.BASIC,
             employeeList: {
+                [USER_EMAIL]: {email: USER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: APPROVER_EMAIL},
                 [PEER_EMAIL]: {email: PEER_EMAIL, role: CONST.POLICY.ROLE.USER, submitsTo: APPROVER_EMAIL, overLimitForwardsTo: USER_EMAIL},
             },
         });
