@@ -4826,7 +4826,7 @@ function createTypeMenuSections(params: TypeMenuSectionsParams): SearchTypeMenuS
     return typeMenuSections;
 }
 
-function createBaseSavedSearchMenuItem(item: SaveSearchItem, key: string, index: number, title: string, isFocused: boolean): SavedSearchMenuItem {
+function createBaseSavedSearchMenuItem(item: SaveSearchItem, key: string, title: string, isFocused: boolean): SavedSearchMenuItem {
     return {
         key,
         title,

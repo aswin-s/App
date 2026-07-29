@@ -1518,13 +1518,9 @@ function arePaymentsEnabled(policy: OnyxEntry<Policy>): boolean {
 }
 
 /**
- * Whether the user submits their own expenses in this group workspace, i.e. they route reports onward to someone else.
- *
- * Deliberately stricter than the `isEligibleForSubmitSuggestion` gate used by the Submit suggested search
- * (`getSuggestedSearchesVisibility` in SearchUIUtils), which is satisfied by any group workspace. That gate is evaluated per
- * policy for a surface every member should see, but folded across policies it reduces to "is a member of any group
- * workspace" — true for everyone, approvers included, since the POLICY collection only holds policies the user belongs to.
- * A terminal approver has no `submitsTo` target of their own, which is what separates them from a submitting manager.
+ * Whether the user submits their own expenses in this workspace, i.e. they route reports onward to someone else.
+ * Membership alone is not enough: an approver is necessarily a member of the workspace they approve on, but a terminal
+ * approver has no `submitsTo` target of their own.
  */
 function isPolicySubmitter(policy: OnyxEntry<Policy>, currentUserEmail: string): boolean {
     if (!isGroupPolicy(policy)) {
@@ -1535,14 +1531,9 @@ function isPolicySubmitter(policy: OnyxEntry<Policy>, currentUserEmail: string):
 }
 
 /**
- * Returns true when the user both submits and approves expenses — the dual-role audience the "My expenses" seeded search
- * targets (https://github.com/Expensify/App/issues/92780). Single-role users are excluded: the `from:<me>` filter is empty
- * for an approve-only account and a no-op for a submit-only one, so it is only useful when a user's own expenses are mixed
- * in with the ones they approve.
- *
- * A submitter routes their own reports onward (see `isPolicySubmitter`); an approver is a member of a group workspace with a
- * non-optional approval flow whom `isPolicyApprover` recognizes (named approver, or someone reports submit/forward to). The
- * two roles need not be held on the same workspace.
+ * Whether the user both submits and approves expenses, the dual-role audience the seeded "My expenses" search targets.
+ * The two roles need not be held on the same workspace. An approver is a member of a group workspace with a non-optional
+ * approval flow whom `isPolicyApprover` recognizes (named approver, or someone reports submit/forward to).
  */
 function isSubmitterAndApprover(policies: OnyxCollection<Policy> | null | undefined, currentUserEmail: string | undefined): boolean {
     if (!policies || !currentUserEmail) {
@@ -3068,7 +3059,6 @@ export {
     getReimburserEmail,
     arePaymentsEnabled,
     isSubmitterAndApprover,
-    isPolicySubmitter,
     isSubmitAndClose,
     isTaxTrackingEnabled,
     shouldShowPolicy,

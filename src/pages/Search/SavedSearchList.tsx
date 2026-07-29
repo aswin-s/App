@@ -40,7 +40,6 @@ type SavedSearchListProps = {
 type SavedSearchMenuItemBuilderParams = {
     item: SaveSearchItem;
     key: string;
-    index: number;
     hash: number | undefined;
     title: string;
     getOverflowMenu: (itemName: string, itemHash: number, itemQuery: string) => ReturnType<typeof getOverflowMenuUtil>;
@@ -48,9 +47,9 @@ type SavedSearchMenuItemBuilderParams = {
     isCopied: boolean;
 };
 
-function buildSavedSearchMenuItem({item, key, index, hash, title, getOverflowMenu, itemStyle, isCopied}: SavedSearchMenuItemBuilderParams): SavedSearchMenuItem {
+function buildSavedSearchMenuItem({item, key, hash, title, getOverflowMenu, itemStyle, isCopied}: SavedSearchMenuItemBuilderParams): SavedSearchMenuItem {
     const isItemFocused = Number(key) === hash;
-    const baseMenuItem: SavedSearchMenuItem = createBaseSavedSearchMenuItem(item, key, index, title, isItemFocused);
+    const baseMenuItem: SavedSearchMenuItem = createBaseSavedSearchMenuItem(item, key, title, isItemFocused);
 
     return {
         ...baseMenuItem,
@@ -122,11 +121,10 @@ function SavedSearchList({hash}: SavedSearchListProps) {
 
     const savedSearchesMenuItems = savedSearches
         ? Object.entries(savedSearches)
-              .map(([key, item], index) =>
+              .map(([key, item]) =>
                   buildSavedSearchMenuItem({
                       item,
                       key,
-                      index,
                       hash,
                       title: item.name === item.query ? (savedSearchTitles.get(item.query) ?? item.name) : item.name,
                       getOverflowMenu,
